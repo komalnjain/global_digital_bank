@@ -1,0 +1,7 @@
+account_number,name,age,balance,account_type,status,pin
+1001,abcd,23,7000.00,Savings,Active,
+1002,Varshitha,22,1000.00,Savings,Active,
+1003,Hitha,21,2000.00,Savings,Active,
+1004,Likhitha,21,2000.00,Current,Active,
+1005,komal,21,20000.00,Current,Active,
+1006,queen,22,3000.00,Savings,Active,
