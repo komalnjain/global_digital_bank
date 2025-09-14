@@ -1,0 +1,9 @@
+{
+    "account_number": 1008,
+    "name": "mahi",
+    "age": 22,
+    "balance": 1978.0,
+    "account_type": "Savings",
+    "status": "Active",
+    "transactions": []
+}

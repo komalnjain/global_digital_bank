@@ -190,25 +190,16 @@ class BankingSystem:
         return True
 
     def export_account_data(self, account_number, filename=None):
-        """Export account data to a JSON file.
-        
-        Args:
-            account_number: The account number to export
-            filename: Optional custom filename (default: account_<number>_export.json)
-            
-        Returns:
-            bool: True if export was successful, False otherwise
-        """
+        """Export account data to a JSON file with improved error handling."""
         account = self.accounts.get(account_number)
         if not account:
             print("Error: Account not found.")
             return False
-            
+
         if not filename:
             filename = f"account_{account_number}_export.json"
-            
+
         try:
-            # Prepare account data for export
             account_data = {
                 'account_number': account.account_number,
                 'name': account.name,
@@ -223,39 +214,35 @@ class BankingSystem:
                     'balance_after': t[3]
                 } for t in account.transactions]
             }
-            
+
             with open(filename, 'w') as f:
                 json.dump(account_data, f, indent=2)
-                
+
             print(f"Account data exported to {filename}")
             return True
-            
+
+        except FileNotFoundError:
+            print(f"Error: File '{filename}' not found.")
+        except json.JSONDecodeError:
+            print("Error: Invalid JSON format in export file.")
         except Exception as e:
-            print(f"Error exporting account data: {e}")
-            return False
+            print(f"Error during export: {e}")
+
+        return False
             
     def import_account_data(self, filename):
-        """Import account data from a JSON file.
-        
-        Args:
-            filename: The JSON file to import from
-            
-        Returns:
-            bool: True if import was successful, False otherwise
-        """
+        """Import account data from a JSON file with improved validation."""
         try:
             with open(filename, 'r') as f:
                 data = json.load(f)
-                
-            # Validate required fields
+
             required_fields = ['account_number', 'name', 'account_type', 'balance']
             if not all(field in data for field in required_fields):
                 print("Error: Invalid data format in import file.")
                 return False
-                
+
             account_number = data['account_number']
-            
-            # Check if account already exists
+
             if account_number in self.accounts:
                 print(f"Account {account_number} already exists. Updating...")
                 account = self.accounts[account_number]
@@ -263,8 +250,7 @@ class BankingSystem:
                 account.balance = data['balance']
                 account.account_type = data['account_type']
                 account.status = data.get('status', 'Active')
-                
-                # Only update transactions if they exist in import
+
                 if 'transactions' in data and isinstance(data['transactions'], list):
                     account.transactions = [(
                         datetime.fromisoformat(t['date']),
@@ -273,31 +259,29 @@ class BankingSystem:
                         t['balance_after']
                     ) for t in data['transactions']]
             else:
-                # Create new account
                 account = Account(
                     account_number=account_number,
                     name=data['name'],
-                    age=data.get('age', 18),  # Default age if not provided
+                    age=data.get('age', 18),
                     balance=data['balance'],
                     account_type=data['account_type']
                 )
                 account.status = data.get('status', 'Active')
                 self.accounts[account_number] = account
-                
-                # Update next account number if needed
+
                 if account_number >= self.next_account_number:
                     self.next_account_number = account_number + 1
-                    
+
             print(f"Successfully imported data for account {account_number}")
             return True
-            
+
         except FileNotFoundError:
             print(f"Error: File '{filename}' not found.")
         except json.JSONDecodeError:
             print("Error: Invalid JSON format in import file.")
         except Exception as e:
             print(f"Error during import: {e}")
-            
+
         return False
             
     def load_accounts(self):
@@ -552,12 +536,12 @@ class BankingSystem:
         return True
         
     def find_youngest_account_holder(self):
-        """Finds and displays the youngest account holder."""
+        """Finds and displays the youngest account holder based on minimum age."""
         if not self.accounts:
             print("No accounts found.")
             return None
-            
-        youngest = max(self.accounts.values(), key=lambda acc: acc.age)
+
+        youngest = min(self.accounts.values(), key=lambda acc: acc.age)
         print("\n--- Youngest Account Holder ---")
         print(f"Name: {youngest.name}")
         print(f"Age: {youngest.age}")
@@ -567,12 +551,12 @@ class BankingSystem:
         return youngest
         
     def find_oldest_account_holder(self):
-        """Finds and displays the oldest account holder."""
+        """Finds and displays the oldest account holder based on maximum age."""
         if not self.accounts:
             print("No accounts found.")
             return None
-            
-        oldest = min(self.accounts.values(), key=lambda acc: acc.age)
+
+        oldest = max(self.accounts.values(), key=lambda acc: acc.age)
         print("\n--- Oldest Account Holder ---")
         print(f"Name: {oldest.name}")
         print(f"Age: {oldest.age}")
@@ -740,39 +724,38 @@ class BankingSystem:
         return True
 
     def transfer_funds(self, from_account_num, to_account_num, amount, category='TRANSFER', description=""):
-        """Transfers funds between two accounts.
-        
-        Args:
-            from_account_num: Source account number
-            to_account_num: Destination account number
-            amount: Amount to transfer (must be positive)
-            category: Transaction category (default: 'TRANSFER')
-            description: Optional description of the transfer
-            
-        Returns:
-            bool: True if transfer was successful, False otherwise
-        """
+        """Transfers funds between two accounts with PIN verification."""
         from_account = self.accounts.get(from_account_num)
         to_account = self.accounts.get(to_account_num)
 
         if not from_account or not to_account:
             print("Error: One or both accounts not found.")
             return False
-        
+
         if from_account.status == 'Inactive' or to_account.status == 'Inactive':
             print("Error: Both accounts must be active to transfer funds.")
             return False
-            
+
+        # Require PIN verification for the sender's account
+        try:
+            pin = input("Enter 4-digit PIN: ")
+            if not from_account.verify_pin(pin):
+                print("Error: Invalid PIN.")
+                return False
+        except AccountLockedError as e:
+            print(f"Error: {e}")
+            return False
+
         # Use the Account class's validation for the withdrawal part of the transfer
         can_withdraw, message = from_account.can_withdraw(amount)
         if not can_withdraw:
             print(f"Error: {message}")
             return False
-            
+
         # Process the transfer with categories
         from_category = f"{category}_OUT" if not category.endswith('_OUT') else category
         to_category = f"{category}_IN" if not category.endswith('_IN') else category
-        
+
         # Record the transactions
         from_txn = from_account.add_transaction(
             'TRANSFER_OUT', 
@@ -780,14 +763,14 @@ class BankingSystem:
             from_category,
             f"Transfer to account {to_account_num}: {description}"
         )
-        
+
         to_txn = to_account.add_transaction(
             'TRANSFER_IN',
             amount,
             to_category,
             f"Transfer from account {from_account_num}: {description}"
         )
-        
+
         # Log the transactions
         transaction_logger.info(f'Transfer to {to_account_num}', extra={
             'account_number': from_account_num,
@@ -798,7 +781,7 @@ class BankingSystem:
             'description': description,
             'related_transaction': to_txn[0].isoformat()
         })
-        
+
         transaction_logger.info(f'Transfer from {from_account_num}', extra={
             'account_number': to_account_num,
             'operation': 'TRANSFER_IN',
@@ -808,11 +791,11 @@ class BankingSystem:
             'description': description,
             'related_transaction': from_txn[0].isoformat()
         })
-        
+
         # Save the updated accounts to CSV
         if not self.save_accounts():
             print("Warning: Failed to save account data after transfer.")
-            
+
         print(f"Transfer of {amount} successful from {from_account_num} to {to_account_num}.")
         return True
         
@@ -1013,3 +996,84 @@ class BankingSystem:
         pdf.output(filename)
         print(f"PDF statement generated: {os.path.abspath(filename)}")
         return os.path.abspath(filename)
+    
+    def upgrade_account_type(self, account_number, new_type):
+        """Upgrade the account type for a given account."""
+        account = self.accounts.get(account_number)
+        if not account:
+            print("Error: Account not found.")
+            return False
+
+        if new_type.lower() not in ["savings", "current"]:
+            print("Error: Invalid account type. Must be 'Savings' or 'Current'.")
+            return False
+
+        if account.account_type.lower() == new_type.lower():
+            print(f"Account is already of type {new_type}.")
+            return False
+
+        account.account_type = new_type.capitalize()
+        print(f"Account {account_number} type upgraded to {new_type}.")
+
+        # Save the updated accounts to CSV
+        if not self.save_accounts():
+            print("Warning: Failed to save account data after upgrading account type.")
+
+        # Log the transaction
+        transaction_logger.info('', extra={
+            'account_number': account_number,
+            'operation': 'UpgradeAccountType',
+            'amount': 0,
+            'balance_after': account.balance,
+            'details': f"Account type upgraded to {new_type}"
+        })
+
+        return True
+    
+    def calculate_average_balance(self):
+        """Calculate the average balance across all accounts."""
+        if not self.accounts:
+            print("No accounts found.")
+            return None
+
+        total_balance = sum(account.balance for account in self.accounts.values())
+        average_balance = total_balance / len(self.accounts)
+
+        print(f"The average balance across all accounts is: {average_balance:.2f}")
+        return average_balance
+    
+    def import_accounts_from_file(self, filename):
+        """Import extra accounts from a CSV file."""
+        import csv
+        try:
+            with open(filename, 'r', newline='') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    account_number = int(row['account_number'])
+                    if account_number in self.accounts:
+                        print(f"Account {account_number} already exists. Skipping...")
+                        continue
+
+                    account = Account(
+                        account_number=account_number,
+                        name=row['name'],
+                        age=int(row['age']),
+                        balance=float(row['balance']),
+                        account_type=row['account_type']
+                    )
+                    account.status = row.get('status', 'Active')
+                    self.accounts[account_number] = account
+
+                    # Update next account number if needed
+                    if account_number >= self.next_account_number:
+                        self.next_account_number = account_number + 1
+
+            print(f"Successfully imported accounts from {filename}")
+            return True
+
+        except FileNotFoundError:
+            print(f"Error: File '{filename}' not found.")
+        except Exception as e:
+            print(f"Error during import: {e}")
+
+        return False

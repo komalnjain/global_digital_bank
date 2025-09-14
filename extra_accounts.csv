@@ -1,0 +1,5 @@
+account_number,name,age,balance,account_type,status
+1012,John Doe,30,1500.00,Savings,Active
+1013,Jane Smith,25,2500.00,Current,Active
+1010,Emily Davis,22,3000.00,Savings,Active
+1011,Michael Brown,35,4000.00,Current,Inactive

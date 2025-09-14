@@ -1,0 +1,94 @@
+{
+    "accounts": [
+        {
+            "account_number": 1001,
+            "name": "varsha",
+            "age": 23,
+            "balance": 7400.0,
+            "account_type": "Savings",
+            "status": "Active",
+            "transactions": []
+        },
+        {
+            "account_number": 1002,
+            "name": "Varshitha",
+            "age": 22,
+            "balance": 771.0,
+            "account_type": "Savings",
+            "status": "Active",
+            "transactions": []
+        },
+        {
+            "account_number": 1003,
+            "name": "Hitha",
+            "age": 21,
+            "balance": 2000.0,
+            "account_type": "Savings",
+            "status": "Active",
+            "transactions": []
+        },
+        {
+            "account_number": 1004,
+            "name": "Likhitha",
+            "age": 21,
+            "balance": 1980.0,
+            "account_type": "Current",
+            "status": "Active",
+            "transactions": [
+                [
+                    "2025-09-14 20:14:28.681154",
+                    "TRANSFER_OUT",
+                    -20.0,
+                    1980.0,
+                    "TRANSFER_OUT",
+                    "Transfer to account 1006: "
+                ]
+            ]
+        },
+        {
+            "account_number": 1005,
+            "name": "komal",
+            "age": 21,
+            "balance": 39800.0,
+            "account_type": "Current",
+            "status": "Active",
+            "transactions": []
+        },
+        {
+            "account_number": 1006,
+            "name": "queen",
+            "age": 22,
+            "balance": 3220.0,
+            "account_type": "Savings",
+            "status": "Active",
+            "transactions": [
+                [
+                    "2025-09-14 20:14:28.681154",
+                    "TRANSFER_IN",
+                    20.0,
+                    3220.0,
+                    "TRANSFER_IN",
+                    "Transfer from account 1004: "
+                ]
+            ]
+        },
+        {
+            "account_number": 1007,
+            "name": "komal",
+            "age": 18,
+            "balance": 1220.0,
+            "account_type": "Savings",
+            "status": "Active",
+            "transactions": []
+        },
+        {
+            "account_number": 1008,
+            "name": "mahi",
+            "age": 22,
+            "balance": 1978.0,
+            "account_type": "Savings",
+            "status": "Active",
+            "transactions": []
+        }
+    ]
+}

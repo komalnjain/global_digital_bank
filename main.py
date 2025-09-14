@@ -1,6 +1,8 @@
 # main.py
 from banking_system import BankingSystem
 from data_handler import load_accounts
+from account import AccountLockedError
+import json
 
 def secure_input(prompt, hide_input=False):
     """Get secure input, optionally hiding it (for PINs)."""
@@ -64,8 +66,9 @@ def main_menu():
     print("21) Transaction History")
     print("22) Generate Account Statement")
     print("23) Export Account Data")
-    print("24) Import Account Data")
-    print("25) Exit")
+    print("24) Upgrade Account Type")
+    print("25) Import Accounts from File")
+    print("26) Exit")
 
 def set_account_pin(bank, account_number):
     """Set or change PIN for an account."""
@@ -100,33 +103,49 @@ def set_account_pin(bank, account_number):
             
 def export_account_data(bank, account_number=None):
     """Export account data to a file.
-    
+
     Args:
         bank: The BankingSystem instance
         account_number: Optional account number to export. If None, exports all accounts.
     """
-    if account_number is not None:
-        # Export single account
-        if account_number not in bank.accounts:
-            print("Account not found.")
+    if account_number:
+        # Export a single account
+        account = bank.accounts.get(account_number)
+        if not account:
+            print("Error: Account not found.")
             return
-            
-        accounts_to_export = [bank.accounts[account_number]]
+
         filename = f"account_{account_number}_export.json"
-    else:
-        # Export all accounts
-        if not bank.accounts:
-            print("No accounts to export.")
-            return
-            
-        accounts_to_export = bank.accounts.values()
-        filename = "all_accounts_export.json"
-    
-    # Prepare account data for export
+        account_data = {
+            'account_number': account.account_number,
+            'name': account.name,
+            'age': account.age,
+            'balance': account.balance,
+            'account_type': account.account_type,
+            'status': account.status,
+            'transactions': account.transactions
+        }
+
+        try:
+            with open(filename, 'w') as f:
+                json.dump(account_data, f, indent=4, default=str)
+            print(f"Account data exported to {filename}")
+        except Exception as e:
+            print(f"Error exporting account data: {e}")
+        return
+
+    # Export all accounts
+    if not bank.accounts:
+        print("No accounts to export.")
+        return
+
+    accounts_to_export = bank.accounts.values()
+    filename = "all_accounts_export.json"
+
     export_data = {
         'accounts': []
     }
-    
+
     for account in accounts_to_export:
         account_data = {
             'account_number': account.account_number,
@@ -137,92 +156,23 @@ def export_account_data(bank, account_number=None):
             'status': account.status,
             'transactions': account.transactions
         }
-        
+
         # Add PIN if it exists
         if hasattr(account, 'pin'):
             account_data['pin'] = account.pin
-            
+
         export_data['accounts'].append(account_data)
-    
+
     try:
         with open(filename, 'w') as f:
             json.dump(export_data, f, indent=4, default=str)
+        print(f"Account data exported to {filename}")
     except Exception as e:
         print(f"Error exporting account data: {e}")
         return
         
     print(f"Account data exported to {filename}")
     return filename
-
-def import_account_data(bank):
-    """Import account data from a file."""
-    filename = input("Enter the filename to import: ")
-    try:
-        with open(filename, 'r') as f:
-            data = json.load(f)
-            
-        # Check if this is a single account or multiple accounts
-        if 'accounts' in data:  # Multiple accounts
-            for account_data in data['accounts']:
-                account_number = account_data['account_number']
-                
-                # Skip if account already exists
-                if account_number in bank.accounts:
-                    print(f"Account {account_number} already exists. Skipping import.")
-                    continue
-                    
-                # Create the account
-                account = Account(
-                    account_number,
-                    account_data['name'],
-                    account_data['age'],
-                    account_data['balance'],
-                    account_data['account_type']
-                )
-                # Restore additional attributes
-                account.status = account_data.get('status', 'Active')
-                account.transactions = account_data.get('transactions', [])
-                if 'pin' in account_data:
-                    account.pin = account_data['pin']
-                    
-                bank.accounts[account_number] = account
-                if account_number >= bank.next_account_number:
-                    bank.next_account_number = account_number + 1
-                
-                print(f"Successfully imported account {account_number}")
-                
-        else:  # Single account (legacy format)
-            account_data = data['account']
-            account_number = account_data['account_number']
-            
-            # Skip if account already exists
-            if account_number in bank.accounts:
-                print(f"Account {account_number} already exists. Skipping import.")
-                return
-                
-            # Create the account
-            account = Account(
-                account_number,
-                account_data['name'],
-                account_data['age'],
-                account_data['balance'],
-                account_data['account_type']
-            )
-            bank.accounts[account_number] = account
-            if account_number >= bank.next_account_number:
-                bank.next_account_number = account_number + 1
-        
-            print(f"Successfully imported data for account {account_number}")
-            
-        # Save all accounts after import
-        bank.save_accounts()
-        
-    except FileNotFoundError:
-        print(f"Error: File '{filename}' not found.")
-    except json.JSONDecodeError:
-        print("Error: Invalid JSON format in import file.")
-    except Exception as e:
-        print(f"Error during import: {e}")
 
 def main():
     bank = BankingSystem()
@@ -444,10 +394,18 @@ def main():
                 else:
                     print("Invalid choice. Please try again.")
                 
-            elif choice == 24:  # Import Account Data
-                import_account_data(bank)
+            elif choice == 24:  # Upgrade Account Type
+                acc_num = int(input("Enter account number: "))
+                account = authenticate_account(bank, acc_num)
+                if account:
+                    new_type = input("Enter new account type (Savings/Current): ")
+                    bank.upgrade_account_type(acc_num, new_type)
+                    
+            elif choice == 25:  # Import Accounts from File
+                filename = input("Enter the filename to import accounts from: ")
+                bank.import_accounts_from_file(filename)
                 
-            elif choice == 25:
+            elif choice == 26:
                 print("Saving data and exiting...")
                 bank.system_exit_with_autosave()
                 break

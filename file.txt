@@ -1,0 +1,20 @@
+# Import the account module
+from account import *
+
+# Define the default path for the project
+default_path = "file.txt"
+
+# Function to import account data
+def import_account_data():
+    try:
+        # Assuming the account module has a function to handle data import
+        data = load_account_data()  # Replace with the actual function from account.py
+        with open(default_path, "w") as file:
+            file.write(data)
+        print("Account data imported successfully.")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+
+# Call the function to import data
+if __name__ == "__main__":
+    import_account_data()
